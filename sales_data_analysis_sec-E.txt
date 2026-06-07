@@ -1,0 +1,79 @@
+--SECTION E
+
+
+
+--Q24. Write a query using CASE to classify products into price tiers: 
+ -- • 'Budget'    → unit_price < 1000 
+  --• 'Mid-Range' → unit_price BETWEEN 1000 AND 3000 
+  --• 'Premium'   → unit_price > 3000 
+--Display: product_name, unit_price, price_tier. 
+
+SELECT product_name, unit_price,
+       CASE 
+           WHEN unit_price < 1000 THEN 'Budget'
+           WHEN unit_price BETWEEN 1000 AND 3000 THEN 'Mid-Range'
+           ELSE 'Premium'
+       END AS price_tier
+FROM products;
+
+
+
+--Q25. Using a CASE statement inside an aggregate function, count how many orders are 'Delivered' vs 'Not Delivered' (all other statuses).
+--Display the result in a single row.
+SELECT 
+    SUM(CASE WHEN status = 'Delivered' THEN 1 ELSE 0 END) AS delivered_count,
+    SUM(CASE WHEN status <> 'Delivered' THEN 1 ELSE 0 END) AS not_delivered_count
+FROM orders;
+
+
+
+
+--Q26. Explain each letter of ACID: 
+ -- • A – Atomicity 
+ -- • C – Consistency 
+ -- • I – Isolation 
+  --• D – Durability 
+--Give a real-world example (e.g., bank transfer) showing why each property is important. 
+--A – Atomicity: This is basically the "all or nothing" principle. 
+--If the database successfully subtracts ₹1,000 from Account A, but the system crashes right before adding it to Account B, the entire transaction is cancelled and rolled back.
+--The database doesn't allow money to just disappear in mid-air. Either both steps happen successfully, or neither does.
+
+--C – Consistency: This means the database forces every transaction to follow strict data rules and constraints. For example,
+--if Account A has a baseline validation rule saying its balance can never drop below zero , 
+--a transaction trying to transfer more money than what is actually available will fail immediately to keep the data from getting corrupted.
+
+
+--I – Isolation: This ensures that multiple transactions running at the exact same time don't interfere with each other.
+--If two different transfers try to pull money from Account A at the exact same millisecond, the database isolates them and processes them sequentially.
+--This prevents major glitches like double-spending or messy overlapping calculations.
+
+--D – Durability: This guarantees that once a transaction goes through and is confirmed, it is permanent. The data is immediately saved directly onto physical disk storage. 
+--Even if there is a sudden power cut or the server completely crashes a second later, the updated balances are safe and won't be lost.
+
+
+
+--Q27. Write a SQL transaction that does the following atomically: 
+  --1. Insert a new order (order_id=1011, customer_id=102, today's date, 'Pending', 1598.00) 
+  --2. Insert two order items for that order 
+  --3. Update the stock_qty of the purchased products 
+  --4. If any step fails, ROLLBACK the entire transaction. Otherwise, COMMIT. 
+--Write the complete BEGIN...COMMIT/ROLLBACK block. 
+BEGIN TRANSACTION;
+
+-- 1. Insert the new master order row
+INSERT INTO orders (order_id, customer_id, order_date, status, total_amount)
+VALUES (1011, 102, '2026-06-08', 'Pending', 1598.00);
+
+-- 2. Insert the two individual line items for this order
+INSERT INTO order_items (item_id, order_id, product_id, quantity, unit_price, discount_pct)
+VALUES (5016, 1011, 207, 1, 899.00, 0);
+
+INSERT INTO order_items (item_id, order_id, product_id, quantity, unit_price, discount_pct)
+VALUES (5017, 1011, 202, 1, 799.00, 0);
+
+-- 3. Update the warehouse stock levels for the two purchased products
+UPDATE products SET stock_qty = stock_qty - 1 WHERE product_id = 207;
+UPDATE products SET stock_qty = stock_qty - 1 WHERE product_id = 202;
+
+COMMIT;
+ 
